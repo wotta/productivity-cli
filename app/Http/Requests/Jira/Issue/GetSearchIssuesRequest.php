@@ -19,7 +19,7 @@ class GetSearchIssuesRequest extends Request
         return [
             'jql' => 'project = PROJ AND status NOT IN (Done, "Closed for now") AND sprint != empty ORDER BY created DESC',
             'maxResults' => 10,
-            'fields' => 'id,title,summary'
+            'fields' => 'id,title,summary',
         ];
     }
 }

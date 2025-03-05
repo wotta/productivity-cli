@@ -41,7 +41,7 @@ class MakeNewBranch extends Command
             apiToken: Cache::get('jira.api-token'),
         );
 
-        dd($jira->send(new GetSearchIssuesRequest())->json());
+        dd($jira->send(new GetSearchIssuesRequest)->json());
 
         return Command::SUCCESS;
     }
