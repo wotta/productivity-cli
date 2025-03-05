@@ -50,6 +50,23 @@ class InitCommand extends Command
         Cache::put('jira.site-url', $siteUrl);
         $this->comment('Store site url');
 
+        $email = text(
+            label: 'email',
+            default: (string) Cache::get('jira.email', ''),
+            required: true,
+            validate: function (string $email) {
+                if (filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+                    return 'The email is not a valid email address.';
+                }
+
+                return null;
+            },
+            hint: 'Your email that you want to authenticate with',
+        );
+
+        Cache::put('jira.email', $email);
+        $this->comment('E-mail is stored');
+
         $apiToken = text(
             label: 'API token',
             required: true,
