@@ -4,12 +4,11 @@ declare(strict_types=1);
 
 namespace App\Commands\Jira;
 
-use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Str;
 use Illuminate\Support\Stringable;
 use LaravelZero\Framework\Commands\Command;
+
 use function Laravel\Prompts\text;
 
 class InitCommand extends Command
@@ -49,7 +48,7 @@ class InitCommand extends Command
         );
 
         Cache::put('jira.site-url', $siteUrl);
-        $this->comment('Store site url');;
+        $this->comment('Store site url');
 
         $apiToken = text(
             label: 'API token',
