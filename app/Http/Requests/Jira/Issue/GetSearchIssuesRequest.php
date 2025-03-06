@@ -7,7 +7,7 @@ use Saloon\Http\Request;
 
 class GetSearchIssuesRequest extends Request
 {
-    protected Method $method = MEthod::GET;
+    protected Method $method = Method::GET;
 
     public function resolveEndpoint(): string
     {
