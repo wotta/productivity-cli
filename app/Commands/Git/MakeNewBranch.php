@@ -6,9 +6,11 @@ namespace App\Commands\Git;
 
 use App\Http\Connectors\Jira\JiraConnector;
 use App\Http\Requests\Jira\Issue\GetSearchIssuesRequest;
-use Illuminate\Console\Scheduling\Schedule;
+use ArdaGnsrn\Ollama\Ollama;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use LaravelZero\Framework\Commands\Command;
+use function Laravel\Prompts\select;
 
 class MakeNewBranch extends Command
 {
@@ -41,17 +43,77 @@ class MakeNewBranch extends Command
             apiToken: Cache::get('jira.api-token'),
         );
 
-        dd($jira->send(new GetSearchIssuesRequest)->json());
+        $getSearchIssuesRequest = new GetSearchIssuesRequest();
+        $jiraIssues = $jira->send(
+            $getSearchIssuesRequest
+                ->setProject('JAM')
+        )->json('issues');
+
+        $selectedIssue = select(
+            'For which ticket would you like to create a new branch?',
+            options: Arr::pluck($jiraIssues, 'fields.summary', 'key'),
+        );
+
+        $selectedIssue = Arr::first($jiraIssues, function ($value, $key) use ($selectedIssue) {
+            return $value['key'] === $selectedIssue;
+        });
+
+        $key = $selectedIssue['key'];
+        $description = $selectedIssue['renderedFields']['description'];
+        $summary = $selectedIssue['fields']['summary'];
+
+        $client = Ollama::client();
+
+        $result = $client->chat()->create([
+            'model' => 'llama3.2',
+            'messages' => [
+                [
+                    'role' => 'user',
+                    'content' => sprintf(
+                        '
+                            Create a local branch name using the following format: {KEY}-{title: sensible short text based on description and or summary}.
+                            All branch names should be written in English.
+
+                            key: %s
+                            description: %s
+                            summary: %s
+
+                            rule:
+                            - Branch names in English
+                            - No spaces but `-`
+                            - Always start with the {KEY}
+                            - Only return the most logic likely to option if multiple could be feasible
+                            - Only one branch name without any other text
+
+                            Examples:
+
+                            PROJ123-this-is-an-example-branch
+                            SEC25-implement-oauth-authentication
+
+                            Incorrect examples which should not be suggested:
+
+                            - WOT-1466 - Saving a page in the admin doesn\'t redirect to the index pages
+                              - The format in question is incorrect since it doesn\'t use `-` where spaces are.
+                            - PROJ-1239-mailings-and-actions-inschrijvingen-campagnes
+                              - This is incorrect because it uses both English and Dutch while it should be English only.
+
+                            <output>
+                            branch name.
+                            </output>
+                        ',
+                        $key,
+                        $description,
+                        $summary,
+                    ),
+                ],
+            ],
+        ]);
+
+        dd($result);
+
+        // Format: KEY-sensible-branch-title
 
         return Command::SUCCESS;
-    }
-
-    /**
-     * Define the command's schedule.
-     */
-    public function schedule(Schedule $schedule): void
-    {
-        // $schedule->command(static::class)->everyMinute();
     }
 
     private function hasJiraAuthenticationSettings(): bool
